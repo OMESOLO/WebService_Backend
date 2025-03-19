@@ -2,6 +2,8 @@ import database from "../service/database.js";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import multer from "multer"
+import fs from 'fs';
+import path from 'path';
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -153,4 +155,64 @@ export async function logoutMember(req, res){
         {
             return res.json({login:true})
         }
+}
+export async function updateMember(req, res) {
+    console.log("POST /members/updateProfile is requested");
+
+    try {
+        const { memEmail, newEmail, memName } = req.body;
+
+        if (!memEmail || !newEmail || !memName) {
+            return res.status(400).json({ success: false, message: "Missing required fields" });
+        }
+
+        const existsResult = await database.query({
+            text: 'SELECT EXISTS (SELECT * FROM members WHERE "memEmail" = $1)',
+            values: [memEmail]
+        });
+
+        if (!existsResult.rows[0].exists) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        if (newEmail !== memEmail) {
+            const emailExists = await database.query({
+                text: 'SELECT EXISTS (SELECT * FROM members WHERE "memEmail" = $1)',
+                values: [newEmail]
+            });
+
+            if (emailExists.rows[0].exists) {
+                return res.status(409).json({ success: false, message: "New email is already in use" });
+            }
+        }
+
+        await database.query({
+            text: `UPDATE members SET "memEmail" = $1, "memName" = $2 WHERE "memEmail" = $3`,
+            values: [newEmail, memName, memEmail]
+        });
+
+        await database.query({
+            text: `UPDATE carts SET "cusId" = $1 WHERE "cusId" = $2`,
+            values: [newEmail, memEmail]
+        });
+
+        const oldImagePath = path.join('img_mem', `${memEmail}.jpg`);
+        const newImagePath = path.join('img_mem', `${newEmail}.jpg`);
+
+        if (fs.existsSync(oldImagePath)) {
+            fs.renameSync(oldImagePath, newImagePath);
+        }
+
+        const secret_key = process.env.SECRET_KEY;
+        const newToken = jwt.sign(
+            { memEmail: newEmail, memName: memName },
+            secret_key,
+            { expiresIn: '1h' }
+        );
+
+        res.json({ success: true, message: "Profile updated successfully", newToken });
+    } catch (err) {
+        console.error("Error updating profile:", err);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
 }
