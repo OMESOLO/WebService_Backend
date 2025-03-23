@@ -199,6 +199,39 @@ export async function getCartByCus(req, res) {
         })
     }
   }
+
+  export async function deleteCart(req, res) {
+    console.log(`DELETE Cart ${req.params.id} is requested`);
+    
+    try {
+        // ตรวจสอบว่าตะกร้านี้มีอยู่จริงหรือไม่
+        const cartCheck = await database.query({
+            text: `SELECT * FROM carts WHERE "cartId" = $1`,
+            values: [req.params.id]
+        });
+
+        if (cartCheck.rowCount === 0) {
+            return res.status(404).json({ message: "Cart not found" });
+        }
+
+        // ลบรายละเอียดสินค้าก่อน
+        await database.query({
+            text: `DELETE FROM "cartDtl" WHERE "cartId" = $1`,
+            values: [req.params.id]
+        });
+
+        // ลบตะกร้าสินค้า
+        await database.query({
+            text: `DELETE FROM carts WHERE "cartId" = $1`,
+            values: [req.params.id]
+        });
+
+        return res.status(200).json({ message: "Cart deleted successfully" });
+    } catch (err) {
+        console.error("Error deleting cart:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
   
   
   
