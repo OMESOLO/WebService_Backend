@@ -13,5 +13,6 @@ router.get('/carts/getcart/:id',cartC.getCart)
 router.get('/carts/getcartdtl/:id',cartC.getCartDtl)
 router.post('/carts/getcartbycus',cartC.getCartByCus)
 router.delete('/carts/delete/:id', cartC.deleteCart);
+router.put('/carts/confirmorder/:cartId', cartC.confirmOrder);
 
 export default router

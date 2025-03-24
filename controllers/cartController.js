@@ -232,6 +232,35 @@ export async function getCartByCus(req, res) {
         return res.status(500).json({ message: "Internal server error" });
     }
 }
+
+export async function confirmOrder(req, res) {
+  console.log(`PUT Confirm Order for CartId ${req.params.cartId} is requested`);
+
+  try {
+      const { cartId } = req.params;
+
+      // ตรวจสอบว่าตะกร้ามีอยู่จริงหรือเปล่า
+      const checkCart = await database.query({
+          text: `SELECT * FROM carts WHERE "cartId" = $1`,
+          values: [cartId]
+      });
+
+      if (checkCart.rowCount === 0) {
+          return res.status(404).json({ message: "Cart not found" });
+      }
+
+      // อัปเดตให้ยืนยันคำสั่งซื้อ
+      const result = await database.query({
+          text: `UPDATE carts SET "cartCf" = true WHERE "cartId" = $1`,
+          values: [cartId]
+      });
+
+      return res.status(200).json({ message: "Order confirmed successfully" });
+  } catch (err) {
+      console.error("Error confirming order:", err);
+      return res.status(500).json({ message: "Internal server error" });
+  }
+}
   
   
   

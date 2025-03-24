@@ -1,4 +1,18 @@
 import database from "../service/database.js"
+import multer from 'multer'
+import path from 'path'
+import fs from 'fs'
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'img_pd') // โฟลเดอร์ที่ใช้เก็บรูป
+    },
+    filename: function (req, file, cb) {
+        const uniqueName = Date.now() + '-' + file.originalname
+        cb(null, uniqueName)
+    }
+})
+export const upload = multer({ storage: storage })
 
 export async function getProductByBrandId(req, res){
     console.log(`GET / productsByBrandId brand_id=${req.params.id} is Requested`)
@@ -184,41 +198,29 @@ export async function getAllProduct(req, res){
 
 export async function postProduct(req, res){
     console.log(`POST /products is requested`)
-        try {
-            if(req.body.pdId == null || req.body.pdName == null)
-            {
-                return res.status(422).json({
-                    error: 'pdId and pdName is required.'
-                })
-            }
-    
-            const existsResult = await database.query({
-                text: 'SELECT EXISTS (SELECT * FROM products WHERE "pdId" = $1)',
-                values: [req.body.pdId]
-            })
-            if(existsResult.rows[0].exists)
-            {
-                return res.status(409).json({
-                    error: `pdId ${req.body.pdId} is Exists`
-                })
-            }
-    
-    
-            const result = await database.query({
-                text: `INSERT INTO products ("pdId", "pdName", "pdPrice", "pdRemark", "pdTypeId", "brandId")
-                VALUES ($1, $2, $3, $4, $5, $6)`,
-                values: [req.body.pdId, req.body.pdName, req.body.pdPrice, req.body.pdRemark, req.body.pdTypeId, req.body.brandId]
-            })
-            const bodyData = req.body
-            const datetime = new Date()
-            bodyData.createDate = datetime
-            res.status(201).json(bodyData)
-    
-        } catch (err) {
-            return res.status(500).json({
-                error: err.message
-            })
+    try {
+        const { pdName, pdPrice, pdRemark, pdTypeId, brandId } = req.body;
+        const image = req.file?.filename; // ชื่อไฟล์
+
+        if (!pdName || !pdPrice) {
+            return res.status(422).json({ error: 'pdName and pdPrice are required.' });
         }
+
+        // สร้าง pdId ใหม่แบบ timestamp (หรือใช้ uuid ก็ได้)
+        const pdId = 'pd_' + Date.now();
+
+        await database.query({
+            text: `INSERT INTO products ("pdId", "pdName", "pdPrice", "pdRemark", "pdTypeId", "brandId", "pdImage")
+                   VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            values: [pdId, pdName, pdPrice, pdRemark, pdTypeId, brandId, image]
+        });
+
+        res.status(201).json({ pdId, pdName, pdPrice, pdRemark, pdTypeId, brandId, image });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: err.message });
+    }
 }
 
 export async function getTenProduct(req,res){
@@ -292,3 +294,24 @@ export async function getSearchProduct(req, res) {
         })
     }    
 }
+
+export async function getAllBrands(req, res) {
+    console.log(`GET /brands is requested`);
+    try {
+        const result = await database.query(`SELECT * FROM brands`);
+        return res.status(200).json(result.rows);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+}
+
+export async function getAllPdTypes(req, res) {
+    console.log(`GET /pdTypes is requested`);
+    try {
+        const result = await database.query(`SELECT * FROM "pdTypes"`);
+        return res.status(200).json(result.rows);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+}
+
