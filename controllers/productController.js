@@ -196,26 +196,46 @@ export async function getAllProduct(req, res){
         }
 }
 
+async function generateNextPdId() {
+    const result = await database.query(`SELECT "pdId" FROM products ORDER BY "pdId" DESC LIMIT 1`);
+    let lastId = result.rows[0]?.pdId || "000";
+
+    const numericPart = parseInt(lastId.slice(-3)) + 1;
+    return numericPart.toString().padStart(3, '0');
+}
+
 export async function postProduct(req, res){
     console.log(`POST /products is requested`)
     try {
         const { pdName, pdPrice, pdRemark, pdTypeId, brandId } = req.body;
-        const image = req.file?.filename; // ชื่อไฟล์
+        const image = req.file?.filename;
 
         if (!pdName || !pdPrice) {
             return res.status(422).json({ error: 'pdName and pdPrice are required.' });
         }
 
-        // สร้าง pdId ใหม่แบบ timestamp (หรือใช้ uuid ก็ได้)
-        const pdId = 'pd_' + Date.now();
+        const newPdId = await generateNextPdId();
 
         await database.query({
             text: `INSERT INTO products ("pdId", "pdName", "pdPrice", "pdRemark", "pdTypeId", "brandId", "pdImage")
                    VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            values: [pdId, pdName, pdPrice, pdRemark, pdTypeId, brandId, image]
+            values: [newPdId, pdName, pdPrice, pdRemark, pdTypeId, brandId, image]
         });
 
-        res.status(201).json({ pdId, pdName, pdPrice, pdRemark, pdTypeId, brandId, image });
+        if (req.file?.filename) {
+            const oldPath = path.join('img_pd', req.file.filename);
+            const newFilename = `${newPdId}.jpg`;
+            const newPath = path.join('img_pd', newFilename);
+
+            fs.renameSync(oldPath, newPath);
+
+            await database.query(
+                `UPDATE products SET "pdImage" = $1 WHERE "pdId" = $2`,
+                [newFilename, newPdId]
+            );
+        }
+
+        res.status(201).json({ newPdId, pdName, pdPrice, pdRemark, pdTypeId, brandId, image });
 
     } catch (err) {
         console.error(err);
