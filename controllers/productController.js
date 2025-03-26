@@ -53,6 +53,14 @@ export async function deleteProduct(req, res){
     console.log(`DELETE / products id=${req.params.id} is Requested`)
         
         try {
+
+            const findResult = await database.query({
+                text: `SELECT "pdImage" FROM products WHERE "pdId" = $1`,
+                values: [req.params.id]
+            });
+    
+            const imageFilename = findResult.rows[0]?.pdImage;
+            const imagePath = path.join('img_pd', imageFilename);
             // const strQry='SELECT * FROM products'
             const result =  await database.query({
                 text: `
@@ -65,7 +73,12 @@ export async function deleteProduct(req, res){
             })
 
             if(result.rowCount == 0)
-                return res.status(404).json({error: `id ${req.params.id} not found` })
+                return res.status(404).json({error: `id ${req.params.id} not found` });
+
+            if (imageFilename && fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+                console.log(`ลบไฟล์รูป: ${imageFilename}`);
+            }
             
             res.status(204).end()
         }
