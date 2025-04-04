@@ -1,132 +1,831 @@
 openapi: 3.0.0
 info:
-  title: KUSHOP API
-  description: KUSHOP Project from Kasetsart University Sriracha Campus.
+  title: Shoes Store API Documentation
   version: 0.1
 servers:
   - url: http://localhost:3000/
-    # description: My Localhost
+
+tags:
+  - name: CartController
+  - name: MemberController
+  - name: ProductController
+
 paths:
-  /products:
-    # GET All Product
-    get:
-      summary: Returns a list all of products.
-      # สามารถอธิบายรายละเอียดได้
-      # เครื่องหมาย |
-      description: |
-        List all products in array of object format.<br>
-        Each product contains details like product ID, name, price, etc.
-      # ส่วนอธิบายว่าจะส่ง Status Cose อะไรกลับไปบ้าง
-      responses:
-        "200": # status code
-          description: A JSON array of Products
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  # อ้างอิงไปที่ Component เพื่อแสดงรายละเอียด
-                  $ref: "#/components/schemas/products"
-# กำหนด Component ที่ต้องการแสดงรายละเอียด
-  /products/{id}:
-    # GET Product by ID
-    get:
-      summary: Returns the specify products.
-      # สามารถอธิบายรายละเอียดได้
-      # เครื่องหมาย |
-      description: |
-        Show a products in array of object format
-      # ส่วนกำหนด Parameter
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Product ID
-          schema:
-            type : string
-      # ส่วนอธิบายว่าจะส่ง Status Cose อะไรกลับไปบ้าง
-      responses:
-        '200':    # status code
-          description: A JSON array of Products
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  # อ้างอิงไปที่ Component เพื่อแสดงรายละเอียด
-                  $ref: '#/components/schemas/products'
-        '404':    # status code
-          description: A product with the specified ID was not found.
-        '500':    # status code
-          description: Server error.
-    
-     # POST new product
+  /carts/chkcart:
     post:
-      summary: Creates a new Product.
+      tags: [CartController]
+      summary: ตรวจสอบว่าลูกค้ามีตะกร้าสินค้าหรือไม่
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/new_product'   #component for create
+              type: object
+              required:
+                - memEmail
+              properties:
+                memEmail:
+                  type: string
+            example:
+              memEmail: "user@example.com"
       responses:
-        '201':
-          description: Product is created.
-        '409':
-          description: Product ID is existes.
-        '500':
-          description: Server Error
+        "200":
+          description: ตอบกลับว่ามีตะกร้าหรือไม่
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      cartExist:
+                        type: boolean
+                      cartId:
+                        type: string
+                  - type: object
+                    properties:
+                      cartExist:
+                        type: boolean
+              examples:
+                Exist:
+                  value:
+                    cartExist: true
+                    cartId: "202503270001"
+                NotExist:
+                  value:
+                    cartExist: false
+        "400":
+          description: Missing member Email
 
-components:
-  schemas:
-    products:
-      type: object
-      properties:
-        pdId:
-          type: string
-        pdName:
-          type: string
-        pdPrice:
-          # integer , number
-          type: number
-        pdRemark:
-          type: string
-        pdTypeId:
-          type: string
-        brandId:
-          type: string
-        brand:
-          $ref: "#/components/schemas/brands"
-        pdt:
-          $ref: "#/components/schemas/productType"
-    brands:
-      type: object
-      properties:
-        brandId:
-          type: string
-        brandName:
-          type: string
-    productType:
-      type: object
-      properties:
-        pdTypeId:
-          type: string
-        pdTypeName:
-          type: string
-    # Component สำหรับ POST
-    new_product:
-      type: object
-      properties:
-        pdId:
-          type: string
-        pdName:
-          type: string
-        pdPrice:
-          # integer , number
-          type: number
-        pdRemark:
-          type: string
-        pdTypeId:
-          type: string
-        brandId:
-          type: string
+  /carts/addcart:
+    post:
+      tags: [CartController]
+      summary: สร้างตะกร้าใหม่สำหรับลูกค้า
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cusId
+              properties:
+                cusId:
+                  type: string
+            example:
+              cusId: "user@example.com"
+      responses:
+        "200":
+          description: ตะกร้าถูกสร้างเรียบร้อย
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cartOK:
+                    type: boolean
+                  messageAddCart:
+                    type: string
+              example:
+                cartOK: true
+                messageAddCart: "202503270001"
+
+  /carts/addcartdtl:
+    post:
+      tags: [CartController]
+      summary: เพิ่มสินค้าเข้าในตะกร้าสินค้า
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cartId
+                - pdId
+                - pdPrice
+              properties:
+                cartId:
+                  type: string
+                pdId:
+                  type: string
+                pdPrice:
+                  type: number
+            example:
+              cartId: "202503270001"
+              pdId: "001"
+              pdPrice: 799.99
+      responses:
+        "200":
+          description: เพิ่มสินค้าสำเร็จหรืออัปเดตจำนวนสำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cartDtlOK:
+                    type: boolean
+                  messageAddCart:
+                    type: string
+              example:
+                cartDtlOK: true
+                messageAddCart: "202503270001"
+
+  /carts/sumcart/{id}:
+    get:
+      tags: [CartController]
+      summary: รวมยอดสินค้าในตะกร้า
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Cart ID
+      responses:
+        "200":
+          description: ข้อมูลรวมยอดในตะกร้า
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  qty:
+                    type: integer
+                  money:
+                    type: number
+              example:
+                id: "202503270001"
+                qty: 3
+                money: 2399.97
+
+  /carts/delete/{id}:
+    delete:
+      tags: [CartController]
+      summary: ลบตะกร้าและรายการสินค้าทั้งหมดในตะกร้า
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Cart ID
+      responses:
+        "200":
+          description: ลบตะกร้าสำเร็จ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Cart deleted successfully"
+        "404":
+          description: ไม่พบตะกร้าที่ต้องการลบ
+
+  /carts/confirmorder/{cartId}:
+    put:
+      tags: [CartController]
+      summary: ยืนยันคำสั่งซื้อของตะกร้า
+      parameters:
+        - in: path
+          name: cartId
+          schema:
+            type: string
+          required: true
+          description: Cart ID
+      responses:
+        "200":
+          description: คำสั่งซื้อได้รับการยืนยันแล้ว
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: "Order confirmed successfully"
+        "404":
+          description: ไม่พบตะกร้า
+        "500":
+          description: ข้อผิดพลาดจากระบบเซิร์ฟเวอร์
+
+  /carts/getcart/{id}:
+    get:
+      tags: [CartController]
+      summary: แสดงข้อมูลตะกร้าทั้งหมดตาม cartId
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Cart ID
+      responses:
+        "200":
+          description: ข้อมูลตะกร้าสำเร็จ
+          content:
+            application/json:
+              example:
+                - cartId: "202503270001"
+                  cusId: "user@example.com"
+                  cartDate: "2025-03-27"
+                  sqty: 3
+                  sprice: 2399.97
+
+  /carts/getcartdtl/{id}:
+    get:
+      tags: [CartController]
+      summary: แสดงรายการสินค้าทั้งหมดในตะกร้าตาม cartId
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Cart ID
+      responses:
+        "200":
+          description: ข้อมูลรายการสินค้าสำเร็จ
+          content:
+            application/json:
+              example:
+                - row_number: 1
+                  pdId: "001"
+                  pdName: "รองเท้าวิ่งสีดำ"
+                  qty: 2
+                  price: 799.99
+                - row_number: 2
+                  pdId: "002"
+                  pdName: "รองเท้าแตะ"
+                  qty: 1
+                  price: 799.99
+
+  /carts/getcartbycus:
+    post:
+      tags: [CartController]
+      summary: ดึงตะกร้าทั้งหมดของลูกค้าตามอีเมล
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+            example:
+              id: "user@example.com"
+      responses:
+        "200":
+          description: ดึงข้อมูลตะกร้าของลูกค้าเรียบร้อย
+          content:
+            application/json:
+              example:
+                - cartId: "202503270001"
+                  cusId: "user@example.com"
+                  cartDate: "2025-03-27"
+                  sqty: 3
+                  sprice: 2399.97
+
+  /members:
+    post:
+      tags: [MemberController]
+      summary: ลงทะเบียนสมาชิกใหม่
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memEmail
+                - memName
+                - password
+              properties:
+                memEmail:
+                  type: string
+                memName:
+                  type: string
+                password:
+                  type: string
+            example:
+              memEmail: "user@example.com"
+              memName: "John Doe"
+              password: "securepassword123"
+      responses:
+        "200":
+          description: ลงทะเบียนสำเร็จหรือเกิดข้อผิดพลาด
+          content:
+            application/json:
+              example:
+                regist: true
+                message: "Registration successful"
+                memEmail: "user@example.com"
+                memName: "John Doe"
+
+  /members/login:
+    post:
+      tags: [MemberController]
+      summary: เข้าสู่ระบบสมาชิก
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - loginname
+                - password
+              properties:
+                loginname:
+                  type: string
+                password:
+                  type: string
+            example:
+              loginname: "user@example.com"
+              password: "securepassword123"
+      responses:
+        "200":
+          description: ผลการเข้าสู่ระบบ
+          content:
+            application/json:
+              example:
+                login: true
+
+  /members/logout:
+    get:
+      tags: [MemberController]
+      summary: ออกจากระบบสมาชิก
+      responses:
+        "200":
+          description: ออกจากระบบสำเร็จหรือเกิดข้อผิดพลาด
+          content:
+            application/json:
+              example:
+                login: false
+
+  /members/uploadimg:
+    post:
+      tags: [MemberController]
+      summary: อัปโหลดรูปโปรไฟล์สมาชิก
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: อัปโหลดสำเร็จ
+        "400":
+          description: อัปโหลดล้มเหลว
+
+  /members/updateProfile:
+    post:
+      tags: [MemberController]
+      summary: อัปเดตข้อมูลโปรไฟล์สมาชิก
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - memEmail
+                - newEmail
+                - memName
+              properties:
+                memEmail:
+                  type: string
+                newEmail:
+                  type: string
+                memName:
+                  type: string
+            example:
+              memEmail: "user@example.com"
+              newEmail: "newuser@example.com"
+              memName: "John Doe"
+      responses:
+        "200":
+          description: อัปเดตโปรไฟล์สำเร็จ
+          content:
+            application/json:
+              example:
+                success: true
+                message: "Profile updated successfully"
+        "400":
+          description: ข้อมูลไม่ครบถ้วน
+        "404":
+          description: ไม่พบผู้ใช้งาน
+        "409":
+          description: อีเมลใหม่ถูกใช้งานแล้ว
+        "500":
+          description: ข้อผิดพลาดจากระบบเซิร์ฟเวอร์
+
+  /products:
+    get:
+      tags: [ProductController]
+      summary: ดึงสินค้าทั้งหมด
+      responses:
+        "200":
+          description: แสดงสินค้าทั้งหมด
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pdId:
+                      type: string
+                    pdName:
+                      type: string
+                    pdPrice:
+                      type: number
+                    pdImage:
+                      type: string
+                    brand:
+                      type: object
+                      properties:
+                        brandName:
+                          type: string
+                    pdt:
+                      type: object
+                      properties:
+                        pdTypeName:
+                          type: string
+              example:
+                - pdId: "001"
+                  pdName: "่joo"
+                  pdPrice: 45900
+                  pdImage: "001.jpg"
+                  brand:
+                    brandName: "Nike"
+                  pdt:
+                    pdTypeName: "รองเท้า"
+
+    post:
+      tags: [ProductController]
+      summary: เพิ่มสินค้าใหม่
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                pdName:
+                  type: string
+                  example: "โน้ตบุ๊ก ASUS ROG"
+                pdPrice:
+                  type: number
+                  example: 45900
+                pdRemark:
+                  type: string
+                  example: "สเปกแรง เหมาะกับงานหนัก เล่นเกมได้"
+                pdTypeId:
+                  type: string
+                  example: "LAPTOP"
+                brandId:
+                  type: string
+                  example: "ASUS"
+                image:
+                  type: string
+                  format: binary
+            encoding:
+              image:
+                contentType: image/jpeg
+      responses:
+        "201":
+          description: เพิ่มสินค้าใหม่เรียบร้อย
+          content:
+            application/json:
+              example:
+                newPdId: "001"
+                pdName: "โน้ตบุ๊ก ASUS ROG"
+                pdPrice: 45900
+                pdRemark: "สเปกแรง เหมาะกับงานหนัก เล่นเกมได้"
+                pdTypeId: "LAPTOP"
+                brandId: "ASUS"
+                image: "001.jpg"
+
+  /products/{id}:
+    get:
+      tags: [ProductController]
+      summary: ดึงข้อมูลสินค้าตามรหัสสินค้า
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "001"
+      responses:
+        "200":
+          description: ข้อมูลสินค้าถูกส่งกลับ
+          content:
+            application/json:
+              example:
+                - pdId: "001"
+                  pdName: "รองเท้าวิ่ง Nike Air Zoom Pegasus"
+                  pdPrice: 4200
+                  pdRemark: "รองรับแรงกระแทกดี เหมาะกับการวิ่งระยะไกล"
+                  pdTypeId: "รองเท้า"
+                  brandId: "NIKE"
+                  pdImage: "S001.jpg"
+                  brand:
+                    brandId: "NIKE"
+                    brandName: "Nike Thailand"
+                  pdt:
+                    pdTypeId: "SHOES"
+                    pdTypeName: "รองเท้า"
+        "404":
+          description: ไม่พบสินค้าที่มีรหัสนี้
+          content:
+            application/json:
+              example:
+                error: "id S001 not found"
+    put:
+      tags: [ProductController]
+      summary: แก้ไขข้อมูลสินค้า
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pdId:
+                  type: string
+                pdName:
+                  type: string
+                pdPrice:
+                  type: number
+                pdRemark:
+                  type: string
+                pdTypeId:
+                  type: string
+                brandId:
+                  type: string
+      responses:
+        "201":
+          description: แก้ไขสินค้าเรียบร้อย
+    delete:
+      tags: [ProductController]
+      summary: ลบสินค้า
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "001"
+      responses:
+        "204":
+          description: ลบสินค้าเรียบร้อย
+        "404":
+          description: ไม่พบสินค้าที่ต้องการลบ
+          content:
+            application/json:
+              example:
+                error: "id 001 not found"
+
+  /products/ten:
+    get:
+      tags: [ProductController]
+      summary: ดึง 10 รายการสินค้าล่าสุด
+      responses:
+        "200":
+          description: รายการสินค้า 10 รายการล่าสุด
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pdId:
+                      type: string
+                    pdName:
+                      type: string
+                    pdPrice:
+                      type: number
+                    pdRemark:
+                      type: string
+                      nullable: true
+                    pdTypeId:
+                      type: string
+                    brandId:
+                      type: string
+                    pdImage:
+                      type: string
+                      nullable: true
+                    brand:
+                      type: object
+                      properties:
+                        brandId:
+                          type: string
+                        brandName:
+                          type: string
+                    pdt:
+                      type: object
+                      properties:
+                        pdTypeId:
+                          type: string
+                        pdTypeName:
+                          type: string
+                example:
+                  - pdId: "002"
+                    pdName: "Asics GEL-NYC"
+                    pdPrice: 2000
+                    pdRemark: null
+                    pdTypeId: "T01"
+                    brandId: "B03"
+                    pdImage: null
+                    brand:
+                      brandId: "B03"
+                      brandName: "Asics"
+                    pdt:
+                      pdTypeId: "T01"
+                      pdTypeName: "รองเท้า"
+
+  /products/brands/{id}:
+    get:
+      tags: [ProductController]
+      summary: ดึงสินค้าตาม brand ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "B03"
+      responses:
+        "200":
+          description: รายการสินค้าตามแบรนด์
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pdId:
+                      type: string
+                    pdName:
+                      type: string
+                    pdPrice:
+                      type: number
+                    pdRemark:
+                      type: string
+                      nullable: true
+                    pdTypeId:
+                      type: string
+                    brandId:
+                      type: string
+                    pdImage:
+                      type: string
+                      nullable: true
+                    pdt:
+                      type: object
+                      properties:
+                        pdTypeId:
+                          type: string
+                        pdTypeName:
+                          type: string
+                example:
+                  - pdId: "002"
+                    pdName: "Asics GEL-NYC"
+                    pdPrice: 2000
+                    pdRemark: null
+                    pdTypeId: "T01"
+                    brandId: "B03"
+                    pdImage: null
+                    pdt:
+                      pdTypeId: "T01"
+                      pdTypeName: "รองเท้า"
+
+  /products/search/{id}:
+    get:
+      tags: [ProductController]
+      summary: ค้นหาสินค้าด้วย keyword
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: "001"
+      responses:
+        "200":
+          description: รายการสินค้าที่ตรงกับคำค้นหา
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pdId:
+                      type: string
+                    pdName:
+                      type: string
+                    pdPrice:
+                      type: number
+                    pdRemark:
+                      type: string
+                      nullable: true
+                    pdTypeId:
+                      type: string
+                    brandId:
+                      type: string
+                    pdImage:
+                      type: string
+                      nullable: true
+                    brand:
+                      type: object
+                      properties:
+                        brandId:
+                          type: string
+                        brandName:
+                          type: string
+                    pdt:
+                      type: object
+                      properties:
+                        pdTypeId:
+                          type: string
+                        pdTypeName:
+                          type: string
+                example:
+                  - pdId: "002"
+                    pdName: "Asics GEL-NYC"
+                    pdPrice: 2000
+                    pdRemark: null
+                    pdTypeId: "T01"
+                    brandId: "B03"
+                    pdImage: null
+                    brand:
+                      brandId: "B03"
+                      brandName: "Asics"
+                    pdt:
+                      pdTypeId: "T01"
+                      pdTypeName: "รองเท้า"
+
+  /brands:
+    get:
+      tags: [ProductController]
+      summary: ดึงข้อมูลแบรนด์ทั้งหมด
+      responses:
+        "200":
+          description: ข้อมูลแบรนด์ทั้งหมด
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    brandId:
+                      type: string
+                    brandName:
+                      type: string
+                example:
+                  - brandId: "B01"
+                    brandName: "Nike"
+
+  /pdTypes:
+    get:
+      tags: [ProductController]
+      summary: ดึงประเภทสินค้าทั้งหมด
+      responses:
+        "200":
+          description: ข้อมูลประเภทสินค้าทั้งหมด
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pdTypeId:
+                      type: string
+                    pdTypeName:
+                      type: string
+                example:
+                  - pdTypeId: "T01"
+                    pdTypeName: "รองเท้า"

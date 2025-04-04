@@ -5,6 +5,7 @@ import database from "../service/database.js";
 export async function chkCart(req,res) {
     console.log(`POST CART customer ${req.body.memEmail} is requested`);
     // ก่อนจะ Excuese Query ทำการ Validate Data ก่อน
+
     if (req.body.memEmail == null) {
       return res.json({  error: true, errormessage: "member Email is required"  });
     }
